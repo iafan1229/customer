@@ -7,6 +7,7 @@ import TableHead from '@material-ui/core/TableHead';
 import TableBody from '@material-ui/core/TableBody';
 import TableRow from '@material-ui/core/TableRow';
 import TableCell from '@material-ui/core/TableCell';
+import CircularProgress from '@material-ui/core/CircularProgress'
 import { withStyles } from '@material-ui/core/styles';
 
 const styles = theme => ({
@@ -17,38 +18,40 @@ const styles = theme => ({
   },
   table: {
     minWidth: 1080 //테이블, 무조건 1080이상 자리잡게!, 그래서 가로 스크롤바가 생긴다.
-  }
-})
-
-const customers = [
-  {
-  'id' : 1,
-  'image': 'http://placeimg.com/64/64/any1',
-  'name': '홍길동',
-  'birthday' : '1990/10/3',
-  'gender' : '남',
-  'job' : '학생'
   },
-  {
-    'id' : 2,
-    'image': 'http://placeimg.com/64/64/any2',
-    'name': '이순신',
-    'birthday' : '960305',
-    'gender' : '남',
-    'job' : '프로그래머'
-  },
-  {
-  'id' : 3,
-  'image': 'http://placeimg.com/64/64/any3',
-  'name': '김소다',
-  'birthday' : '870630',
-  'gender' : '여',
-  'job' : '디자이너'
+  progress: {
+    margin: theme.spacing.unit * 2
   }
-  ]
+});
+  
+
+class App extends Component { //사용자의 요청에 따라 그때그때 접근해서 데이터를 불러올 수 있게, 고객 데이터는 비어 잇다가 서버로부터 데이터 받으면 그 때 재구성됨
+  
+  state = {//customer 값이 원래 ""인데 localhost:5000번에서 API 불러오는 과정에서 error가 발생, 리액트를 계속하기 위해서 임시 데이터를 입력함.
+    customers: "",
+      completed: 0
+    
+  }
 
 
-class App extends Component {
+  componentDidMount() { //API, 모든 컴포넌트 마운트가 완료 되었을 때
+    this.timer = setInterval(this.progress, 20);
+    this.callApi()
+      .then(res => this.setState({customers: res}))
+      .catch(err => console.log(err));
+  }
+
+  callApi = async() => {
+    const response = await fetch('/api/customers'); //로컬호스트에 접근해서
+    const body = await response.json();
+    return body;
+  }
+  
+  progress = () => {
+    const { completed } = this.state;
+    this.setState({ completed: completed >= 100 ? 0 : completed + 1});
+  }
+
   render() {
     const { classes } = this.props;
     return (
@@ -65,14 +68,17 @@ class App extends Component {
             </TableRow>
           </TableHead>
           <TableBody>
-          {
-        customers.map(c => { return ( <Customer key={c.id} id={c.id} image={c.image} name={c.name} birthday={c.birthday} gender={c.gender} job={c.job} />
-            );
-          }) // map은 key라는 props가 필요함. //짧은 소스 코드의 작성을 위해 map 함수의 이용. // c라는 원소로 순회 되도록! //반복문을 이용해서 반복되는 소스코드를 줄일 수 있다.
-        }
+          {this.state.customers ? this.state.customers.map(c => { 
+            return ( <Customer key={c.id} id={c.id} image={c.image} name={c.name} birthday={c.birthday} gender={c.gender} job={c.job} />);
+          }) : 
+          <TableRow>
+            <TableCell colSpan="6" align="center">
+              <CircularProgress className={classes.progress} variant="determinate" value={this.state.completed}/>
+            </TableCell>
+            </TableRow>}
           </TableBody>
         </Table>
-        </Paper>
+      </Paper>
     );
   }
 }
